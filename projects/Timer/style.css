@@ -1,0 +1,11 @@
+/*  */
+/*  */
+
+.input,
+button {
+  border: 1px solid #ccc3c3;
+}
+
+button:focus {
+  outline: outset;
+}
