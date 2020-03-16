@@ -17,11 +17,30 @@ h1 {
 }
 
 button {
-  margin-top: 0px;
+  /* margin-top: 0px; */
+  margin: 10px;
+  background-color: #000;
+  padding: 10px 20px;
+  border-radius: 10px;
+  display: block;
+  width: 100%;
+  outline: none;
+  border: none;
+}
+
+button:hover {
+  transform: scale(1.2);
+  transition: transform 0.5s ease-in-out;
 }
 
 button a {
   font-size: 20px;
   /* border: 1px solid black; */
-  /* text-decoration: none; */
+  text-decoration: none;
+  color: #fff;
+}
+
+.movie-container {
+  width: 300px;
+  /* border: 1px solid black; */
 }
