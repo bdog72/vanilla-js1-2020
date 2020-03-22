@@ -1,16 +1,21 @@
 //
 //
 
-const { Engine, Render, Runner, World, Bodies } = Matter;
+const { Engine, Render, Runner, World, Bodies, Body, Events } = Matter;
 
-const cells = 3;
-const width = 600;
-const height = 600;
-const wallWidth = 40;
+// const cells = 6;
+const cellsHorizontal = 4;
+const cellsVertical = 3;
+const width = window.innerWidth;
+const height = window.innerHeight;
+const wallWidth = 2;
 
-const unitLength = width / cells;
+// const unitLength = width / cells;
+const unitLengthX = width / cellsHorizontal;
+const unitLengthY = height / cellsVertical;
 
 const engine = Engine.create();
+engine.world.gravity.y = 0;
 const { world } = engine;
 const render = Render.create({
   element: document.body,
@@ -27,11 +32,10 @@ Runner.run(Runner.create(), engine);
 // Walls
 // prettier-ignore
 const walls = [
-  Bodies.rectangle(width / 2, 0, width, wallWidth, { isStatic: true,fillStyle:'red' }),
-  // Bodies.rectangle(width / 2, 0, width, 40, { isStatic: true }),
-  Bodies.rectangle(width / 2, height, width, 40, { isStatic: true }),
-  Bodies.rectangle(0, height / 2, 40, height, { isStatic: true }),
-  Bodies.rectangle(width, height / 2, 40, height, { isStatic: true }),
+  Bodies.rectangle(width / 2, 0, width, wallWidth, { isStatic: true}),
+  Bodies.rectangle(width / 2, height, width, wallWidth, { isStatic: true }),
+  Bodies.rectangle(0, height / 2, wallWidth, height, { isStatic: true }),
+  Bodies.rectangle(width, height / 2, wallWidth, height, { isStatic: true }),
 ];
 
 World.add(world, walls);
@@ -54,20 +58,20 @@ const shuffle = array => {
   return array;
 };
 
-const grid = Array(cells)
+const grid = Array(cellsVertical)
   .fill(null)
-  .map(() => Array(cells).fill(false));
+  .map(() => Array(cellsHorizontal).fill(false));
 
-const verticals = Array(cells)
+const verticals = Array(cellsVertical)
   .fill(null)
-  .map(() => Array(cells - 1).fill(false));
+  .map(() => Array(cellsHorizontal - 1).fill(false));
 
-const horizontals = Array(cells - 1)
+const horizontals = Array(cellsVertical - 1)
   .fill(null)
-  .map(() => Array(cells).fill(false));
+  .map(() => Array(cellsHorizontal).fill(false));
 
-const startRow = Math.floor(Math.random() * cells);
-const startColumn = Math.floor(Math.random() * cells);
+const startRow = Math.floor(Math.random() * cellsVertical);
+const startColumn = Math.floor(Math.random() * cellsHorizontal);
 
 const stepThroughCell = (row, column) => {
   // If i have visited the cell at [row, column], then return
@@ -92,9 +96,9 @@ const stepThroughCell = (row, column) => {
     // See if that neighbor is out of bounds
     if (
       nextRow < 0 ||
-      nextRow >= cells ||
+      nextRow >= cellsVertical ||
       nextColumn < 0 ||
-      nextColumn >= cells
+      nextColumn >= cellsHorizontal
     ) {
       continue;
     }
@@ -128,12 +132,108 @@ horizontals.forEach((row, rowIndex) => {
     }
 
     const wall = Bodies.rectangle(
-      columnIndex * unitLength + unitLength / 2,
-      rowIndex * unitLength + unitLength,
-      unitLength,
+      columnIndex * unitLengthX + unitLengthX / 2,
+      rowIndex * unitLengthY + unitLengthY,
+      unitLengthX,
       10,
-      { isStatic: true }
+      {
+        label: 'wall',
+        isStatic: true
+      }
     );
     World.add(world, wall);
+  });
+});
+
+verticals.forEach((row, rowIndex) => {
+  row.forEach((open, columnIndex) => {
+    if (open) {
+      return;
+    }
+
+    const wall = Bodies.rectangle(
+      columnIndex * unitLengthX + unitLengthX,
+      rowIndex * unitLengthY + unitLengthY / 2,
+      5,
+      unitLengthY,
+      {
+        label: 'wall',
+        isStatic: true
+      }
+    );
+    World.add(world, wall);
+  });
+});
+
+// Goal
+// prettier-ignore
+const goal = Bodies.rectangle(
+  width - unitLengthX / 2,
+  height - unitLengthY / 2,
+  unitLengthX * .7,
+  unitLengthY * .7,
+  
+  {
+    label: 'goal',
+    isStatic: true
+  }
+  );
+
+World.add(world, goal);
+
+// Ball
+const ballRadius = Math.min(unitLengthX, unitLengthY) / 4;
+// prettier-ignore
+const ball = Bodies.circle(
+  unitLengthX / 2,
+  unitLengthY / 2,
+  ballRadius,
+  {
+    label: 'ball'
+  }
+);
+
+World.add(world, ball);
+
+document.addEventListener('keydown', event => {
+  const { x, y } = ball.velocity;
+
+  if (event.keyCode === 38) {
+    Body.setVelocity(ball, { x, y: y - 5 });
+  }
+
+  if (event.keyCode === 39) {
+    Body.setVelocity(ball, { x: x + 5, y });
+  }
+
+  if (event.keyCode === 40) {
+    Body.setVelocity(ball, { x, y: y + 5 });
+  }
+
+  if (event.keyCode === 37) {
+    Body.setVelocity(ball, { x: x - 5, y });
+  }
+});
+
+// Win Condition
+
+Events.on(engine, 'collisionStart', event => {
+  // console.log(event);
+  event.pairs.forEach(collision => {
+    // console.log(collision);
+
+    const labels = ['ball', 'goal'];
+
+    if (
+      labels.includes(collision.bodyA.label) &&
+      labels.includes(collision.bodyB.label)
+    ) {
+      world.gravity.y = 1;
+      world.bodies.forEach(body => {
+        if (body.label === 'wall') {
+          Body.setStatic(body, false);
+        }
+      });
+    }
   });
 });
